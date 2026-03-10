@@ -300,6 +300,25 @@ HTML = r"""<!DOCTYPE html>
   .res-btn:last-child{border-right:none}
   .res-btn:hover{color:var(--text);background:var(--surface2)}
   .res-btn.active{background:var(--surface2);color:var(--accent)}
+  /* Generation config panel */
+  .gcfg-wrap{border-top:1px solid var(--border);flex-shrink:0}
+  .gcfg-toggle{width:100%;background:none;border:none;color:var(--muted);
+    font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.12em;
+    text-transform:uppercase;padding:.55rem 1.2rem;cursor:pointer;text-align:left;
+    display:flex;align-items:center;justify-content:space-between;transition:color .15s}
+  .gcfg-toggle:hover{color:var(--text)}
+  .gcfg-toggle .arr{transition:transform .2s;font-style:normal}
+  .gcfg-toggle.open .arr{transform:rotate(180deg)}
+  .gcfg-body{display:none;padding:.6rem 1.2rem .8rem;
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem}
+  .gcfg-body.hidden{display:none}
+  .gcfg-field{display:flex;flex-direction:column;gap:.3rem}
+  .gcfg-lbl{font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+  .gcfg-inp{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+    font-family:'DM Mono',monospace;font-size:.72rem;padding:.35rem .55rem;
+    border-radius:5px;outline:none;width:100%;transition:border-color .2s;text-align:center}
+  .gcfg-inp:focus{border-color:var(--accent)}
+  .gcfg-hint{font-size:.52rem;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -348,6 +367,43 @@ HTML = r"""<!DOCTYPE html>
     <div class="prompt-box">
       <div class="ph">Prompt <span class="badge">editable</span></div>
       <textarea id="promptTxt" placeholder="Escribe o edita el prompt aquí…"></textarea>
+    </div>
+    <div class="gcfg-wrap" id="gcfg-wrap-single">
+      <button class="gcfg-toggle" onclick="toggleGcfg('single')">
+        ⚙ Generation Config <span class="arr">▾</span>
+      </button>
+      <div class="gcfg-body hidden" id="gcfg-body-single">
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Temperature</span>
+          <input class="gcfg-inp" type="number" id="s-temp" value="0.1" min="0" max="2" step="0.05">
+          <span class="gcfg-hint">0 – 2</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Top P</span>
+          <input class="gcfg-inp" type="number" id="s-topp" value="0.95" min="0" max="1" step="0.01">
+          <span class="gcfg-hint">0 – 1</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Max Tokens</span>
+          <input class="gcfg-inp" type="number" id="s-maxtok" value="512" min="64" max="8192" step="64">
+          <span class="gcfg-hint">64 – 8192</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Top K</span>
+          <input class="gcfg-inp" type="number" id="s-topk" value="" min="1" max="100" step="1" placeholder="—">
+          <span class="gcfg-hint">opcional</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Candidate Count</span>
+          <input class="gcfg-inp" type="number" id="s-cands" value="1" min="1" max="4" step="1">
+          <span class="gcfg-hint">1 – 4</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Stop Sequence</span>
+          <input class="gcfg-inp" type="text"   id="s-stop" value="" placeholder="—">
+          <span class="gcfg-hint">opcional</span>
+        </div>
+      </div>
     </div>
     <div class="abar">
       <button class="btn btn-p" id="analyzeBtn" disabled>
@@ -400,6 +456,44 @@ HTML = r"""<!DOCTYPE html>
             <button class="res-btn active" id="bRes512" onclick="setBRes(512)">512px</button>
             <button class="res-btn"        id="bRes768" onclick="setBRes(768)">768px</button>
           </div>
+        </div>
+      </div>
+    </div>
+    <!-- Generation config for batch -->
+    <div class="gcfg-wrap">
+      <button class="gcfg-toggle" onclick="toggleGcfg('batch')">
+        ⚙ Generation Config <span class="arr">▾</span>
+      </button>
+      <div class="gcfg-body hidden" id="gcfg-body-batch">
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Temperature</span>
+          <input class="gcfg-inp" type="number" id="b-temp" value="0.1" min="0" max="2" step="0.05">
+          <span class="gcfg-hint">0 – 2</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Top P</span>
+          <input class="gcfg-inp" type="number" id="b-topp" value="0.95" min="0" max="1" step="0.01">
+          <span class="gcfg-hint">0 – 1</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Max Tokens</span>
+          <input class="gcfg-inp" type="number" id="b-maxtok" value="512" min="64" max="8192" step="64">
+          <span class="gcfg-hint">64 – 8192</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Top K</span>
+          <input class="gcfg-inp" type="number" id="b-topk" value="" min="1" max="100" step="1" placeholder="—">
+          <span class="gcfg-hint">opcional</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Candidate Count</span>
+          <input class="gcfg-inp" type="number" id="b-cands" value="1" min="1" max="4" step="1">
+          <span class="gcfg-hint">1 – 4</span>
+        </div>
+        <div class="gcfg-field">
+          <span class="gcfg-lbl">Stop Sequence</span>
+          <input class="gcfg-inp" type="text"   id="b-stop" value="" placeholder="—">
+          <span class="gcfg-hint">opcional</span>
         </div>
       </div>
     </div>
@@ -458,6 +552,26 @@ function setBRes(v) {
   batchRes = v;
   document.getElementById('bRes512').classList.toggle('active', v===512);
   document.getElementById('bRes768').classList.toggle('active', v===768);
+}
+function toggleGcfg(view) {
+  const body = document.getElementById('gcfg-body-'+view);
+  const btn  = body.previousElementSibling;
+  const open = body.classList.toggle('hidden');
+  btn.classList.toggle('open', !open);
+}
+function getGenConfig(prefix) {
+  const v = id => document.getElementById(prefix+'-'+id).value;
+  const cfg = {
+    temperature:     parseFloat(v('temp'))   || 0.1,
+    topP:            parseFloat(v('topp'))   || 0.95,
+    maxOutputTokens: parseInt(v('maxtok'))   || 512,
+    candidateCount:  parseInt(v('cands'))    || 1,
+  };
+  const topk = parseInt(v('topk'));
+  if (topk > 0) cfg.topK = topk;
+  const stop = v('stop').trim();
+  if (stop) cfg.stopSequences = [stop];
+  return cfg;
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
@@ -528,17 +642,17 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
   if (!prompt) { alert('El prompt no puede estar vacío.'); return; }
   setBusy(true); setStatus('Analizando…', true);
   try {
-    const d = await callAnalyze(selectedFile, key, prompt, currentRes);
+    const d = await callAnalyze(selectedFile, key, prompt, currentRes, getGenConfig('s'));
     if (d.error) { showSingleErr(d.error); setStatus('Error', false); }
     else { renderSingle(d.result, selectedFile); setStatus('Completado ✓', true); }
   } catch(e) { showSingleErr('Error: '+e.message); setStatus('Error', false); }
   finally { setBusy(false); }
 });
 
-async function callAnalyze(filename, key, prompt, maxSize=512) {
+async function callAnalyze(filename, key, prompt, maxSize=512, genConfig=null) {
   const r = await fetch('/api/analyze', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({filename, api_key:key, prompt, max_size:maxSize})
+    body: JSON.stringify({filename, api_key:key, prompt, max_size:maxSize, gen_config: genConfig})
   });
   return r.json();
 }
@@ -552,6 +666,7 @@ async function startBatch() {
   if (!allFiles.length) { alert('No hay imágenes en ./dataset.'); return; }
 
   const delay = parseFloat(document.getElementById('delayInp').value) || 0;
+  const bGenCfg = getGenConfig('b');
   batchRunning = true; batchAbort = false; batchResults = {};
   updateStats();
 
@@ -587,7 +702,7 @@ async function startBatch() {
     document.getElementById('pStatus').textContent = `Analizando: ${f}`;
 
     try {
-      const d = await callAnalyze(f, key, prompt, batchRes);
+      const d = await callAnalyze(f, key, prompt, batchRes, bGenCfg);
       if (d.error) {
         batchResults[f] = {state:'error', error:d.error, result:null};
         setCardState(f,'error','ERR'); setFileDot(f,'error');
@@ -777,16 +892,19 @@ def compress_image(image_path: str, max_size: tuple = MAX_SIZE) -> tuple[bytes, 
     return buf.getvalue(), "image/jpeg"
 
 
-def call_gemma(api_key: str, jpeg_bytes: bytes, media_type: str, prompt: str) -> dict:
+def call_gemma(api_key: str, jpeg_bytes: bytes, media_type: str, prompt: str,
+               generation_config: dict | None = None) -> dict:
     url = ("https://generativelanguage.googleapis.com/v1beta/"
            "models/gemma-3-27b-it:generateContent?key=" + api_key)
+    if generation_config is None:
+        generation_config = {"temperature": 0.1, "topP": 0.95, "maxOutputTokens": 512}
     payload = {
         "contents": [{"parts": [
             {"inline_data": {"mime_type": media_type,
                              "data": base64.b64encode(jpeg_bytes).decode()}},
             {"text": prompt},
         ]}],
-        "generationConfig": {"temperature": 0.1, "topP": 0.95, "maxOutputTokens": 512},
+        "generationConfig": generation_config,
     }
     resp = requests.post(url, headers={"Content-Type": "application/json"},
                          json=payload, timeout=60)
@@ -859,6 +977,18 @@ def analyze():
     max_size_val = int(data.get("max_size", 512))
     max_size_val = max_size_val if max_size_val in (512, 768) else 512
     max_size = (max_size_val, max_size_val)
+    gen_config = data.get("gen_config") or {}
+    # Sanitise / apply defaults
+    generation_config = {
+        "temperature":     float(gen_config.get("temperature", 0.1)),
+        "topP":            float(gen_config.get("topP", 0.95)),
+        "maxOutputTokens": int(gen_config.get("maxOutputTokens", 512)),
+        "candidateCount":  int(gen_config.get("candidateCount", 1)),
+    }
+    if "topK" in gen_config:
+        generation_config["topK"] = int(gen_config["topK"])
+    if gen_config.get("stopSequences"):
+        generation_config["stopSequences"] = gen_config["stopSequences"]
 
     if not api_key:
         return jsonify({"error": "API Key no proporcionada"}), 400
@@ -873,7 +1003,7 @@ def analyze():
         return jsonify({"error": f"Error procesando imagen: {e}"}), 500
 
     try:
-        api_resp = call_gemma(api_key, jpeg_bytes, media_type, prompt)
+        api_resp = call_gemma(api_key, jpeg_bytes, media_type, prompt, generation_config)
     except requests.HTTPError as e:
         return jsonify({"error": f"Error HTTP {e.response.status_code}: {e.response.text}"}), 502
     except requests.RequestException as e:
