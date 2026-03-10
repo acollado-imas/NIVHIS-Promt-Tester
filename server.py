@@ -291,6 +291,15 @@ HTML = r"""<!DOCTYPE html>
     font-family:'DM Mono',monospace;font-size:.6rem;padding:.4rem .7rem;
     border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap}
   .expbtn:hover{border-color:var(--accent);color:var(--accent)}
+  /* Resolution toggle */
+  .res-toggle{display:flex;align-items:center;gap:0;border:1px solid var(--border);
+    border-radius:6px;overflow:hidden;flex-shrink:0}
+  .res-btn{background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;
+    font-size:.62rem;padding:.38rem .65rem;cursor:pointer;transition:all .15s;white-space:nowrap;
+    border-right:1px solid var(--border)}
+  .res-btn:last-child{border-right:none}
+  .res-btn:hover{color:var(--text);background:var(--surface2)}
+  .res-btn.active{background:var(--surface2);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -346,6 +355,10 @@ HTML = r"""<!DOCTYPE html>
         <span id="btnTxt">Analizar</span>
       </button>
       <button class="btn btn-s" onclick="resetPrompt()">Reset prompt</button>
+      <div class="res-toggle">
+        <button class="res-btn active" id="res512" onclick="setRes(512)">512px</button>
+        <button class="res-btn"        id="res768" onclick="setRes(768)">768px</button>
+      </div>
       <div class="sdot" id="sdot"></div>
       <span class="stxt" id="stxt">Selecciona una imagen</span>
     </div>
@@ -380,6 +393,13 @@ HTML = r"""<!DOCTYPE html>
         <div class="delay-row">
           <span class="dlbl">Delay (s)</span>
           <input type="number" id="delayInp" value="1" min="0" max="10" step="0.5" />
+        </div>
+        <div class="delay-row">
+          <span class="dlbl">Resolución</span>
+          <div class="res-toggle">
+            <button class="res-btn active" id="bRes512" onclick="setBRes(512)">512px</button>
+            <button class="res-btn"        id="bRes768" onclick="setBRes(768)">768px</button>
+          </div>
         </div>
       </div>
     </div>
@@ -423,9 +443,22 @@ let allFiles = [];
 let batchResults = {};
 let batchRunning = false;
 let batchAbort = false;
+let currentRes  = 512;   // single view resolution
+let batchRes    = 512;   // batch view resolution
 
 document.getElementById('promptTxt').value = DEFAULT_PROMPT;
 document.getElementById('bPrompt').value   = DEFAULT_PROMPT;
+
+function setRes(v) {
+  currentRes = v;
+  document.getElementById('res512').classList.toggle('active', v===512);
+  document.getElementById('res768').classList.toggle('active', v===768);
+}
+function setBRes(v) {
+  batchRes = v;
+  document.getElementById('bRes512').classList.toggle('active', v===512);
+  document.getElementById('bRes768').classList.toggle('active', v===768);
+}
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 function switchTab(t) {
@@ -495,17 +528,17 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
   if (!prompt) { alert('El prompt no puede estar vacío.'); return; }
   setBusy(true); setStatus('Analizando…', true);
   try {
-    const d = await callAnalyze(selectedFile, key, prompt);
+    const d = await callAnalyze(selectedFile, key, prompt, currentRes);
     if (d.error) { showSingleErr(d.error); setStatus('Error', false); }
     else { renderSingle(d.result, selectedFile); setStatus('Completado ✓', true); }
   } catch(e) { showSingleErr('Error: '+e.message); setStatus('Error', false); }
   finally { setBusy(false); }
 });
 
-async function callAnalyze(filename, key, prompt) {
+async function callAnalyze(filename, key, prompt, maxSize=512) {
   const r = await fetch('/api/analyze', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({filename, api_key:key, prompt})
+    body: JSON.stringify({filename, api_key:key, prompt, max_size:maxSize})
   });
   return r.json();
 }
@@ -554,7 +587,7 @@ async function startBatch() {
     document.getElementById('pStatus').textContent = `Analizando: ${f}`;
 
     try {
-      const d = await callAnalyze(f, key, prompt);
+      const d = await callAnalyze(f, key, prompt, batchRes);
       if (d.error) {
         batchResults[f] = {state:'error', error:d.error, result:null};
         setCardState(f,'error','ERR'); setFileDot(f,'error');
@@ -728,7 +761,7 @@ loadFiles();
 
 # ─── Python helpers ────────────────────────────────────────────────────────────
 
-def compress_image(image_path: str) -> tuple[bytes, str]:
+def compress_image(image_path: str, max_size: tuple = MAX_SIZE) -> tuple[bytes, str]:
     img = Image.open(image_path)
     if img.mode in ("RGBA", "P", "LA"):
         bg = Image.new("RGB", img.size, (255, 255, 255))
@@ -823,6 +856,9 @@ def analyze():
     filename = data.get("filename", "")
     api_key  = data.get("api_key", "").strip()
     prompt   = data.get("prompt", DEFAULT_PROMPT)
+    max_size_val = int(data.get("max_size", 512))
+    max_size_val = max_size_val if max_size_val in (512, 768) else 512
+    max_size = (max_size_val, max_size_val)
 
     if not api_key:
         return jsonify({"error": "API Key no proporcionada"}), 400
@@ -832,7 +868,7 @@ def analyze():
         return jsonify({"error": f"Archivo no encontrado: {filename}"}), 404
 
     try:
-        jpeg_bytes, media_type = compress_image(str(image_path))
+        jpeg_bytes, media_type = compress_image(str(image_path), max_size)
     except Exception as e:
         return jsonify({"error": f"Error procesando imagen: {e}"}), 500
 
