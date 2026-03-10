@@ -348,7 +348,9 @@ HTML = r"""<!DOCTYPE html>
 <div class="view active" id="v-single">
 
   <div class="panel">
-    <div class="ph">Dataset <span class="badge" id="fileCount">0</span></div>
+    <div class="ph">Dataset <span class="badge" id="fileCount">0</span>
+      <button onclick="loadFiles()" id="reloadBtn" title="Recargar lista" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0;line-height:1;transition:color .15s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">↺</button>
+    </div>
     <div class="flist" id="fileList"><div class="nofiles">Cargando…</div></div>
   </div>
 
@@ -584,6 +586,8 @@ function switchTab(t) {
 
 // ─── Load files ───────────────────────────────────────────────────────────────
 async function loadFiles() {
+  const btn = document.getElementById('reloadBtn');
+  if (btn) { btn.style.animation='spin .6s linear infinite'; btn.style.display='inline-block'; }
   try {
     const r = await fetch('/api/files');
     const d = await r.json();
@@ -593,6 +597,8 @@ async function loadFiles() {
     buildFileList();
   } catch(e) {
     document.getElementById('fileList').innerHTML = '<div class="nofiles">Error cargando archivos.</div>';
+  } finally {
+    if (btn) { btn.style.animation=''; }
   }
 }
 
