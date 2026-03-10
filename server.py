@@ -41,7 +41,7 @@ HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beverage Analyzer</title>
+<title>NIVHIS Prompt Trainer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -325,9 +325,9 @@ HTML = r"""<!DOCTYPE html>
 
 <!-- Header -->
 <header>
-  <div class="logo">BA</div>
+  <div class="logo">NV</div>
   <div>
-    <div class="h-title">Beverage Analyzer</div>
+    <div class="h-title">NIVHIS Prompt Trainer</div>
     <div class="h-sub">Gemma Vision · Dataset Inspector</div>
   </div>
   <div class="api-wrap">
@@ -1023,7 +1023,7 @@ def analyze():
 
 
 if __name__ == "__main__":
-    print("\n🍾  Beverage Analyzer — Interfaz web")
+    print("\n🍾  NIVHIS Prompt Trainer — Interfaz web")
     print("─" * 40)
     if not DATASET_DIR.exists():
         DATASET_DIR.mkdir(exist_ok=True)
