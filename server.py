@@ -43,25 +43,34 @@ HTML = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NIVHIS Prompt Trainer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg:#0a0a0a; --surface:#111; --surface2:#1a1a1a; --surface3:#222;
-    --border:#2a2a2a; --accent:#c8f542; --text:#f0f0f0;
+    --border:#2a2a2a; --accent:#c8f542; --accent-h:#d9ff55; --text:#f0f0f0;
     --muted:#666; --danger:#ff4d4d; --ok:#4dff91; --warn:#ffb84d;
   }
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
     height:100vh;display:grid;grid-template-rows:auto auto 1fr;overflow:hidden}
 
   /* Header */
-  header{border-bottom:1px solid var(--border);padding:.9rem 2rem;display:flex;
-    align-items:center;gap:1.5rem;background:var(--surface);flex-shrink:0}
-  .logo{width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;
-    align-items:center;justify-content:center;font-family:'Syne',sans-serif;
-    font-weight:800;color:#000;font-size:.85rem;flex-shrink:0}
-  .h-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:.03em}
-  .h-sub{font-size:.6rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  header{border-bottom:1px solid var(--border);padding:0 2rem;display:flex;
+    align-items:stretch;gap:0;background:var(--surface);flex-shrink:0;height:56px}
+  .logo-wrap{display:flex;align-items:center;padding-right:1.75rem;
+    border-right:1px solid var(--border);margin-right:1.5rem}
+  .logo-wrap img{height:22px;width:auto;display:block;filter:brightness(0) invert(1)}
+  .header-divider{width:1px;background:var(--border);margin:0}
+  .h-app{display:flex;flex-direction:column;justify-content:center;gap:.15rem}
+  .h-title{font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;
+    letter-spacing:.02em;color:var(--text)}
+  .h-sub{font-size:.58rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  .h-badge{display:inline-flex;align-items:center;gap:.3rem;background:rgba(200,245,66,.1);
+    border:1px solid rgba(200,245,66,.25);color:var(--accent);border-radius:4px;
+    font-size:.55rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    padding:.15rem .5rem;margin-top:.1rem;width:fit-content}
+  .h-badge::before{content:'';width:5px;height:5px;border-radius:50%;
+    background:var(--accent);flex-shrink:0}
   .api-wrap{margin-left:auto;display:flex;align-items:center;gap:.65rem}
   .api-lbl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
   #apiKey{background:var(--surface2);border:1px solid var(--border);color:var(--text);
@@ -73,9 +82,10 @@ HTML = r"""<!DOCTYPE html>
   /* Tab bar */
   .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);
     padding:0 2rem;flex-shrink:0}
-  .tab{padding:.6rem 1.3rem;font-size:.68rem;font-weight:500;letter-spacing:.1em;
+  .tab{padding:.6rem 1.3rem;font-size:.65rem;font-weight:600;letter-spacing:.08em;
     text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;
-    color:var(--muted);transition:all .15s;user-select:none;display:flex;align-items:center;gap:.45rem}
+    color:var(--muted);transition:all .15s;user-select:none;display:flex;align-items:center;gap:.45rem;
+    font-family:'Inter',sans-serif}
   .tab:hover{color:var(--text)}
   .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
   .tbadge{background:var(--surface2);color:var(--muted);border:1px solid var(--border);
@@ -91,8 +101,9 @@ HTML = r"""<!DOCTYPE html>
   /* Panel */
   .panel{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
   .ph{padding:.8rem 1.2rem .65rem;border-bottom:1px solid var(--border);font-size:.6rem;
-    font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);
-    display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+    font-family:'Inter',sans-serif}
   .badge{background:var(--surface2);color:var(--accent);border:1px solid var(--border);
     border-radius:20px;padding:.1rem .5rem;font-size:.56rem;letter-spacing:.05em}
 
@@ -148,18 +159,18 @@ HTML = r"""<!DOCTYPE html>
 
   .abar{padding:.7rem 1.2rem;border-top:1px solid var(--border);
     display:flex;align-items:center;gap:.65rem;flex-shrink:0}
-  .btn{border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:.72rem;
-    letter-spacing:.08em;text-transform:uppercase;padding:.55rem 1.3rem;border-radius:6px;
+  .btn{border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:.72rem;
+    letter-spacing:.06em;text-transform:uppercase;padding:.55rem 1.3rem;border-radius:5px;
     cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.4rem}
   .btn-p{background:var(--accent);color:#000}
-  .btn-p:hover{background:#d9ff55;transform:translateY(-1px)}
+  .btn-p:hover{background:var(--accent-h);transform:translateY(-1px)}
   .btn-p:active{transform:none}
   .btn-p:disabled{opacity:.4;cursor:not-allowed;transform:none}
   .btn-s{background:transparent;color:var(--muted);border:1px solid var(--border);
-    font-family:'DM Mono',monospace;font-size:.65rem;padding:.55rem .85rem;border-radius:6px}
+    font-family:'Inter',sans-serif;font-size:.65rem;padding:.55rem .85rem;border-radius:5px}
   .btn-s:hover{border-color:var(--muted);color:var(--text)}
   .btn-d{background:rgba(255,77,77,.1);color:var(--danger);border:1px solid rgba(255,77,77,.25);
-    font-family:'DM Mono',monospace;font-size:.65rem;padding:.55rem .85rem;border-radius:6px}
+    font-family:'Inter',sans-serif;font-size:.65rem;padding:.55rem .85rem;border-radius:5px}
   .btn-d:hover{background:rgba(255,77,77,.2)}
   .btn-d:disabled{opacity:.4;cursor:not-allowed}
   .sdot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
@@ -189,7 +200,7 @@ HTML = r"""<!DOCTYPE html>
   .spill.ok{color:var(--ok);border-color:var(--ok);background:rgba(77,255,145,.07)}
   .spill.nok{color:var(--warn);border-color:var(--warn);background:rgba(255,184,77,.07)}
   .spill.error{color:var(--danger);border-color:var(--danger);background:rgba(255,77,77,.07)}
-  .rname{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:.38rem}
+  .rname{font-family:'Inter',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:.38rem}
   .rname.en{color:var(--danger)}
   .rdesc{font-size:.65rem;color:var(--muted);line-height:1.6}
   .jtog{margin-top:.45rem;font-size:.58rem;color:var(--muted);cursor:pointer;
@@ -209,7 +220,8 @@ HTML = r"""<!DOCTYPE html>
   .bcontrols{padding:.9rem 1.4rem;border-bottom:1px solid var(--border);
     display:flex;align-items:flex-start;gap:1.1rem;flex-shrink:0;background:var(--surface)}
   .bpwrap{flex:1;display:flex;flex-direction:column;gap:.45rem}
-  .bplbl{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+  .bplbl{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;
+    font-family:'Inter',sans-serif;font-weight:600}
   #bPrompt{background:var(--surface2);border:1px solid var(--border);color:var(--text);
     font-family:'DM Mono',monospace;font-size:.68rem;line-height:1.55;
     padding:.6rem .85rem;border-radius:6px;resize:vertical;min-height:95px;
@@ -217,7 +229,7 @@ HTML = r"""<!DOCTYPE html>
   #bPrompt:focus{border-color:var(--accent)}
   .bacts{display:flex;flex-direction:column;gap:.45rem;padding-top:1.3rem;min-width:150px}
   .delay-row{display:flex;align-items:center;gap:.45rem}
-  .dlbl{font-size:.58rem;color:var(--muted);white-space:nowrap}
+  .dlbl{font-size:.58rem;color:var(--muted);white-space:nowrap;font-family:'Inter',sans-serif;font-weight:500}
   #delayInp{width:50px;background:var(--surface2);border:1px solid var(--border);
     color:var(--text);font-family:'DM Mono',monospace;font-size:.7rem;
     padding:.3rem .45rem;border-radius:5px;outline:none;text-align:center}
@@ -283,7 +295,7 @@ HTML = r"""<!DOCTYPE html>
     display:flex;gap:.45rem;flex-shrink:0;flex-wrap:wrap;align-items:center}
   .schip{flex:1;min-width:55px;background:var(--surface2);border:1px solid var(--border);
     border-radius:6px;padding:.45rem .45rem .35rem;text-align:center}
-  .sv{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;display:block}
+  .sv{font-family:'Inter',sans-serif;font-size:1.1rem;font-weight:700;display:block}
   .sv.ok{color:var(--ok)} .sv.error{color:var(--danger)}
   .sv.nok{color:var(--warn)} .sv.total{color:var(--accent)}
   .sl{font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
@@ -294,16 +306,16 @@ HTML = r"""<!DOCTYPE html>
   /* Resolution toggle */
   .res-toggle{display:flex;align-items:center;gap:0;border:1px solid var(--border);
     border-radius:6px;overflow:hidden;flex-shrink:0}
-  .res-btn{background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;
+  .res-btn{background:transparent;border:none;color:var(--muted);font-family:'Inter',sans-serif;
     font-size:.62rem;padding:.38rem .65rem;cursor:pointer;transition:all .15s;white-space:nowrap;
-    border-right:1px solid var(--border)}
+    border-right:1px solid var(--border);font-weight:500}
   .res-btn:last-child{border-right:none}
   .res-btn:hover{color:var(--text);background:var(--surface2)}
   .res-btn.active{background:var(--surface2);color:var(--accent)}
   /* Generation config panel */
   .gcfg-wrap{border-top:1px solid var(--border);flex-shrink:0}
   .gcfg-toggle{width:100%;background:none;border:none;color:var(--muted);
-    font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.12em;
+    font-family:'Inter',sans-serif;font-size:.6rem;font-weight:600;letter-spacing:.1em;
     text-transform:uppercase;padding:.55rem 1.2rem;cursor:pointer;text-align:left;
     display:flex;align-items:center;justify-content:space-between;transition:color .15s}
   .gcfg-toggle:hover{color:var(--text)}
@@ -313,7 +325,8 @@ HTML = r"""<!DOCTYPE html>
     display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem}
   .gcfg-body.hidden{display:none}
   .gcfg-field{display:flex;flex-direction:column;gap:.3rem}
-  .gcfg-lbl{font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+  .gcfg-lbl{font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;
+    font-family:'Inter',sans-serif;font-weight:600}
   .gcfg-inp{background:var(--surface2);border:1px solid var(--border);color:var(--text);
     font-family:'DM Mono',monospace;font-size:.72rem;padding:.35rem .55rem;
     border-radius:5px;outline:none;width:100%;transition:border-color .2s;text-align:center}
@@ -325,10 +338,16 @@ HTML = r"""<!DOCTYPE html>
 
 <!-- Header -->
 <header>
-  <div class="logo">NV</div>
-  <div>
+  <div class="logo-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" height="24" aria-label="i-mas">
+      <text y="30" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+            font-weight="700" font-size="30" letter-spacing="1" fill="#ffffff">i-mas</text>
+      <rect x="0" y="35" width="75" height="2.5" fill="#c8f542"/>
+    </svg>
+  </div>
+  <div class="h-app">
     <div class="h-title">NIVHIS Prompt Trainer</div>
-    <div class="h-sub">Gemma Vision · Dataset Inspector</div>
+    <div class="h-badge">Herramienta interna · AI Vision</div>
   </div>
   <div class="api-wrap">
     <span class="api-lbl">API Key</span>
