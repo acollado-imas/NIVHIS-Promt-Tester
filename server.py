@@ -20,16 +20,18 @@ MAX_SIZE = (512, 512)
 JPEG_QUALITY = 70
 
 DEFAULT_PROMPT = (
-    "Actua como un experto en branding. Identifica la bebida de la imagen. "
-    "Ten en cuenta que la etiqueta puede ser muy grande y no leerse completa. "
-    "Si no encuentras la etiqueta, y por lo tanto no estas 100% seguro de la marca, responde con ERROR. "
-    "No es admisible que el nombre de la marca detectada sea erroneo, es preferible responder con un error a la minima duda. "
-    "Quiero saber el tipo de envase (botella o lata) y su estado. "
+    "Identifica la bebida de la imagen. "
     "Quiero una respuesta en formato json siguiendo el siguiente esquema:\n"
-    '{\n  "objects": [\n    {\n      "type": "BOTTLE | CAN | ERROR",\n'
-    '      "name": "BRAND NAME | ERROR IF NONE FOUND",\n'
+    '{\n  "objects": [\n    {\n'
+    '      "type": "BOTTLE | CAN | ERROR",\n'
+    '      "name": "BRAND NAME | ERROR",\n'
     '      "status": "OK | NO OK",\n'
-    '      "description": "DESCRIPCION CORTA"\n    }\n  ]\n}\n'
+    '      "description": "DESCRIPCION CORTA CON DATOS CURIOSOS SOBRE LA BEBIDA Y LA TEMPERATURA IDEAL DE CONSUMICION"\n'
+    '    }\n  ]\n}\n'
+    "Si no encuentras el nombre de la marca (o parte de el) o no encuentras el logo (o parte de el), "
+    "y por lo tanto no estas 100% seguro de la marca, responde el 'name' con ERROR. "
+    "No es admisible que el nombre de la marca detectada sea erroneo, es preferible responder con un error a la minima duda. "
+    "Aunque haya mas de una bebida en la misma imagen y sean parecidas, no puedes asumir la marca de ninguna de las dos si no estas seguro.\n"
     "Si no hay ninguna bebida, responde ERROR.\n"
     "Responde SOLO con el JSON, sin texto adicional, sin bloques de código markdown."
 )

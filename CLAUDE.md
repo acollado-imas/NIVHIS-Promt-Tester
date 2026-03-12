@@ -119,15 +119,15 @@ El modelo debe responder **únicamente** con un JSON válido siguiendo este esqu
   "objects": [
     {
       "type": "BOTTLE | CAN | ERROR",
-      "name": "NOMBRE DE MARCA | ERROR",
+      "name": "BRAND NAME | ERROR",
       "status": "OK | NO OK",
-      "description": "Descripción corta"
+      "description": "Descripción corta con datos curiosos sobre la bebida y la temperatura ideal de consumición"
     }
   ]
 }
 ```
 
-Si no se detecta ninguna bebida, el modelo responde con `ERROR` (texto plano), que `parse_response` convierte al formato estándar con `type: ERROR`.
+El modelo responde `name: ERROR` cuando no puede encontrar el nombre de la marca o su logo (o parte de ellos) con suficiente certeza. No se admite un nombre incorrecto — es preferible ERROR. Si hay varias bebidas parecidas en la misma imagen, no se asume la marca de ninguna si no se está seguro. Si no hay ninguna bebida, responde con `ERROR` (texto plano), que `parse_response` convierte al formato estándar con `type: ERROR`.
 
 **Estados de resultado en batch:**
 - `ok` — todos los objetos tienen `status: OK` y ninguno es ERROR

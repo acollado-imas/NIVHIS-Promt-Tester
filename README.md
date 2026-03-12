@@ -24,7 +24,7 @@ Herramienta interna de **i-mas** para evaluar y afinar prompts de visión artifi
 
 ## Instalación y ejecución
 
-### Windows
+### 🪟 Windows
 
 1. Abre **PowerShell** o el **Símbolo del sistema (cmd)**.
 
@@ -61,7 +61,7 @@ Herramienta interna de **i-mas** para evaluar y afinar prompts de visión artifi
 
 ---
 
-### macOS
+### 🍎 macOS
 
 1. Abre **Terminal**.
 
@@ -101,7 +101,7 @@ Herramienta interna de **i-mas** para evaluar y afinar prompts de visión artifi
 
 ---
 
-### Linux (Ubuntu)
+### 🐧 Linux (Ubuntu)
 
 1. Abre una **terminal**.
 
@@ -185,13 +185,26 @@ Cada análisis devuelve un JSON con la siguiente estructura:
       "type": "BOTTLE | CAN | ERROR",
       "name": "Nombre de la marca detectada",
       "status": "OK | NO OK",
-      "description": "Descripción breve del envase y su estado"
+      "description": "Descripción corta con datos curiosos sobre la bebida y la temperatura ideal de consumición"
     }
   ]
 }
 ```
 
-El modelo responde `ERROR` cuando no puede identificar la marca con suficiente certeza.
+El modelo responde `name: ERROR` cuando no puede identificar la marca con suficiente certeza (no encuentra el nombre, el logo o parte de ellos). Si hay varias bebidas parecidas en la misma imagen, no asume la marca de ninguna si no está seguro.
+
+---
+
+## Estructura de carpetas
+
+```
+./
+├── server.py          # Servidor Flask + interfaz web
+├── requirements.txt   # Dependencias Python
+├── README.md          # Este fichero
+├── CLAUDE.md          # Documentación técnica para desarrollo con IA
+└── dataset/           # Carpeta con las imágenes del dataset
+```
 
 ---
 
@@ -213,3 +226,5 @@ La API de Google puede estar sobrecargada o el modelo tardando más de lo espera
 Ocurre cuando el modelo no respeta el formato JSON solicitado. Prueba a bajar la temperatura (0.0–0.2) en Generation Config para hacer la respuesta más determinista.
 
 ---
+
+*Desarrollado por i-mas — [i-mas.com](https://i-mas.com)*
