@@ -33,7 +33,9 @@ DEFAULT_PROMPT = (
     "No es admisible que el nombre de la marca detectada sea erroneo, es preferible responder con un error a la minima duda. "
     "Aunque haya mas de una bebida en la misma imagen y sean parecidas, no puedes asumir la marca de ninguna de las dos si no estas seguro.\n"
     "Si no hay ninguna bebida, responde ERROR.\n"
-    "Responde SOLO con el JSON, sin texto adicional, sin bloques de código markdown."
+    "Envuelve el JSON final entre las etiquetas <result> y </result>. "
+    "Ejemplo: <result>{...}</result>\n"
+    "NO incluyas razonamiento, explicaciones ni texto adicional fuera de las etiquetas."
 )
 
 # ─── HTML ──────────────────────────────────────────────────────────────────────
@@ -334,6 +336,18 @@ HTML = r"""<!DOCTYPE html>
     border-radius:5px;outline:none;width:100%;transition:border-color .2s;text-align:center}
   .gcfg-inp:focus{border-color:var(--accent)}
   .gcfg-hint{font-size:.52rem;color:var(--muted)}
+  /* Model selector */
+  .model-wrap{display:flex;align-items:center;gap:.5rem;border-right:1px solid var(--border);
+    padding-right:1.25rem;margin-right:.25rem}
+  .model-lbl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;
+    white-space:nowrap}
+  #providerSelect,#modelSelect{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+    font-family:'DM Mono',monospace;font-size:.72rem;padding:.38rem .65rem;
+    border-radius:6px;outline:none;transition:border-color .2s;cursor:pointer}
+  #providerSelect{max-width:130px}
+  #modelSelect{max-width:240px}
+  #providerSelect:focus,#modelSelect:focus{border-color:var(--accent)}
+  #providerSelect option,#modelSelect option{background:var(--surface2);color:var(--text)}
 </style>
 </head>
 <body>
@@ -352,8 +366,20 @@ HTML = r"""<!DOCTYPE html>
     <div class="h-badge">Herramienta interna · AI Vision</div>
   </div>
   <div class="api-wrap">
+    <div class="model-wrap">
+      <span class="model-lbl">Proveedor</span>
+      <select id="providerSelect" onchange="onProviderChange()">
+        <option value="google">Google AI</option>
+        <option value="groq">Groq</option>
+        <option value="openrouter">OpenRouter</option>
+      </select>
+      <select id="modelSelect">
+        <option value="gemma-4-31b-it">gemma-4-31b-it</option>
+      </select>
+      <button class="btn btn-s" onclick="listModels()" title="Cargar modelos disponibles">↺</button>
+    </div>
     <span class="api-lbl">API Key</span>
-    <input type="password" id="apiKey" placeholder="Introduce tu API Key de Google…" />
+    <input type="password" id="apiKey" placeholder="Introduce tu API Key…" />
   </div>
 </header>
 
@@ -408,18 +434,13 @@ HTML = r"""<!DOCTYPE html>
         </div>
         <div class="gcfg-field">
           <span class="gcfg-lbl">Max Tokens</span>
-          <input class="gcfg-inp" type="number" id="s-maxtok" value="512" min="64" max="8192" step="64">
+          <input class="gcfg-inp" type="number" id="s-maxtok" value="1024" min="64" max="8192" step="64">
           <span class="gcfg-hint">64 – 8192</span>
         </div>
         <div class="gcfg-field">
           <span class="gcfg-lbl">Top K</span>
           <input class="gcfg-inp" type="number" id="s-topk" value="" min="1" max="100" step="1" placeholder="—">
           <span class="gcfg-hint">opcional</span>
-        </div>
-        <div class="gcfg-field">
-          <span class="gcfg-lbl">Candidate Count</span>
-          <input class="gcfg-inp" type="number" id="s-cands" value="1" min="1" max="4" step="1">
-          <span class="gcfg-hint">1 – 4</span>
         </div>
         <div class="gcfg-field">
           <span class="gcfg-lbl">Stop Sequence</span>
@@ -500,18 +521,13 @@ HTML = r"""<!DOCTYPE html>
         </div>
         <div class="gcfg-field">
           <span class="gcfg-lbl">Max Tokens</span>
-          <input class="gcfg-inp" type="number" id="b-maxtok" value="512" min="64" max="8192" step="64">
+          <input class="gcfg-inp" type="number" id="b-maxtok" value="1024" min="64" max="8192" step="64">
           <span class="gcfg-hint">64 – 8192</span>
         </div>
         <div class="gcfg-field">
           <span class="gcfg-lbl">Top K</span>
           <input class="gcfg-inp" type="number" id="b-topk" value="" min="1" max="100" step="1" placeholder="—">
           <span class="gcfg-hint">opcional</span>
-        </div>
-        <div class="gcfg-field">
-          <span class="gcfg-lbl">Candidate Count</span>
-          <input class="gcfg-inp" type="number" id="b-cands" value="1" min="1" max="4" step="1">
-          <span class="gcfg-hint">1 – 4</span>
         </div>
         <div class="gcfg-field">
           <span class="gcfg-lbl">Stop Sequence</span>
@@ -588,7 +604,6 @@ function getGenConfig(prefix) {
     temperature:     parseFloat(v('temp'))   || 0.1,
     topP:            parseFloat(v('topp'))   || 0.95,
     maxOutputTokens: parseInt(v('maxtok'))   || 512,
-    candidateCount:  parseInt(v('cands'))    || 1,
   };
   const topk = parseInt(v('topk'));
   if (topk > 0) cfg.topK = topk;
@@ -677,9 +692,10 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
 });
 
 async function callAnalyze(filename, key, prompt, maxSize=512, genConfig=null) {
+  const model = document.getElementById('modelSelect')?.value || 'gemma-4-31b-it';
   const r = await fetch('/api/analyze', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({filename, api_key:key, prompt, max_size:maxSize, gen_config: genConfig})
+    body: JSON.stringify({filename, api_key:key, prompt, max_size:maxSize, gen_config: genConfig, model})
   });
   return r.json();
 }
@@ -894,6 +910,59 @@ function resetPrompt() {
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
+// Default models per provider
+const PROVIDER_DEFAULTS = {
+  google:      { model: 'gemma-4-31b-it',                      placeholder: 'API Key de Google AI Studio' },
+  groq:        { model: 'meta-llama/llama-4-scout-17b-16e-instruct', placeholder: 'API Key de Groq (gsk_...)' },
+  openrouter:  { model: 'qwen/qwen2.5-vl-72b-instruct:free',   placeholder: 'API Key de OpenRouter (sk-or-...)' },
+};
+
+function onProviderChange() {
+  const provider = document.getElementById('providerSelect').value;
+  const def = PROVIDER_DEFAULTS[provider];
+  document.getElementById('apiKey').placeholder = def.placeholder;
+  document.getElementById('modelSelect').innerHTML =
+    `<option value="${def.model}">${def.model}</option>`;
+}
+
+async function listModels() {
+  const key      = document.getElementById('apiKey').value.trim();
+  const provider = document.getElementById('providerSelect').value;
+  if (!key) { alert('Introduce tu API Key primero.'); return; }
+  const btn = event.currentTarget;
+  btn.style.animation = 'spin .6s linear infinite';
+  btn.style.display = 'inline-block';
+  try {
+    const r = await fetch(`/api/models?key=${encodeURIComponent(key)}&provider=${provider}`);
+    const d = await r.json();
+    if (d.error) { alert('Error cargando modelos:\n' + d.error); return; }
+    const sel     = document.getElementById('modelSelect');
+    const current = sel.value;
+    sel.innerHTML = '';
+    d.models.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = m;
+      if (m === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    if (!d.models.includes(current) && sel.options.length) sel.value = sel.options[0].value;
+  } catch(e) {
+    alert('Error de conexión: ' + e.message);
+  } finally {
+    btn.style.animation = '';
+  }
+}
+
+async function callAnalyze(filename, key, prompt, maxSize=512, genConfig=null) {
+  const model    = document.getElementById('modelSelect')?.value  || 'gemma-4-31b-it';
+  const provider = document.getElementById('providerSelect')?.value || 'google';
+  const r = await fetch('/api/analyze', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({filename, api_key:key, prompt, max_size:maxSize, gen_config:genConfig, model, provider})
+  });
+  return r.json();
+}
+
 loadFiles();
 </script>
 </body>
@@ -913,44 +982,126 @@ def compress_image(image_path: str, max_size: tuple = MAX_SIZE) -> tuple[bytes, 
         img = bg
     elif img.mode != "RGB":
         img = img.convert("RGB")
-    img.thumbnail(MAX_SIZE, Image.LANCZOS)
+    img.thumbnail(max_size, Image.LANCZOS)
     buf = BytesIO()
     img.save(buf, format="JPEG", quality=JPEG_QUALITY, optimize=True)
     return buf.getvalue(), "image/jpeg"
 
 
-def call_gemma(api_key: str, jpeg_bytes: bytes, media_type: str, prompt: str,
-               generation_config: dict | None = None) -> dict:
-    url = ("https://generativelanguage.googleapis.com/v1beta/"
-           "models/gemma-3-27b-it:generateContent?key=" + api_key)
+def call_api(provider: str, api_key: str, jpeg_bytes: bytes, media_type: str,
+             prompt: str, generation_config: dict | None = None,
+             model: str = "gemma-4-31b-it") -> dict:
+    """Unified API caller. Returns a normalised response dict with a 'candidates' key."""
     if generation_config is None:
-        generation_config = {"temperature": 0.1, "topP": 0.95, "maxOutputTokens": 512}
-    payload = {
-        "contents": [{"parts": [
-            {"inline_data": {"mime_type": media_type,
-                             "data": base64.b64encode(jpeg_bytes).decode()}},
-            {"text": prompt},
-        ]}],
-        "generationConfig": generation_config,
-    }
-    resp = requests.post(url, headers={"Content-Type": "application/json"},
-                         json=payload, timeout=60)
-    resp.raise_for_status()
-    return resp.json()
+        generation_config = {"temperature": 0.1, "topP": 0.95, "maxOutputTokens": 1024}
+
+    image_b64 = base64.b64encode(jpeg_bytes).decode()
+
+    if provider == "google":
+        url = (f"https://generativelanguage.googleapis.com/v1beta/"
+               f"models/{model}:generateContent?key={api_key}")
+        payload = {
+            "contents": [{"parts": [
+                {"inline_data": {"mime_type": media_type, "data": image_b64}},
+                {"text": prompt},
+            ]}],
+            "generationConfig": {
+                "temperature":     generation_config.get("temperature", 0.1),
+                "topP":            generation_config.get("topP", 0.95),
+                "maxOutputTokens": generation_config.get("maxOutputTokens", 1024),
+                **({} if "topK" not in generation_config else {"topK": generation_config["topK"]}),
+                **({} if "stopSequences" not in generation_config else {"stopSequences": generation_config["stopSequences"]}),
+            },
+        }
+        resp = requests.post(url, headers={"Content-Type": "application/json"},
+                             json=payload, timeout=60)
+        resp.raise_for_status()
+        return resp.json()  # already in Google format
+
+    elif provider in ("groq", "openrouter"):
+        if provider == "groq":
+            url = "https://api.groq.com/openai/v1/chat/completions"
+        else:
+            url = "https://openrouter.ai/api/v1/chat/completions"
+
+        payload = {
+            "model": model,
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{image_b64}"}},
+                    {"type": "text", "text": prompt},
+                ],
+            }],
+            "temperature": generation_config.get("temperature", 0.1),
+            "top_p":       generation_config.get("topP", 0.95),
+            "max_tokens":  generation_config.get("maxOutputTokens", 1024),
+        }
+        if "stopSequences" in generation_config:
+            payload["stop"] = generation_config["stopSequences"]
+
+        headers = {
+            "Content-Type":  "application/json",
+            "Authorization": f"Bearer {api_key}",
+        }
+        if provider == "openrouter":
+            headers["HTTP-Referer"] = "https://i-mas.com"
+            headers["X-Title"]      = "NIVHIS Prompt Trainer"
+
+        resp = requests.post(url, headers=headers, json=payload, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+
+        # Normalise OpenAI format → Google format so parse_response works unchanged
+        text = data["choices"][0]["message"]["content"]
+        return {
+            "candidates": [{
+                "content": {
+                    "parts": [{"text": text}],
+                    "role": "model",
+                }
+            }]
+        }
+
+    else:
+        raise ValueError(f"Proveedor desconocido: {provider}")
 
 
 def parse_response(api_resp: dict) -> dict:
-    text = api_resp["candidates"][0]["content"]["parts"][0]["text"].strip()
-    if text.startswith("```"):
-        lines = text.splitlines()
-        if lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        text = "\n".join(lines).strip()
+    parts = api_resp["candidates"][0]["content"]["parts"]
+
+    # Keep only the part without "thought": true
+    answer_parts = [p for p in parts if not p.get("thought", False)]
+    text = "\n".join(p.get("text", "") for p in answer_parts).strip()
+
+    print(f"📄  Texto de respuesta ({len(text)} chars):\n{text}")
+
+    import re
+
+    # 1. Extract from <result>...</result>
+    tag_match = re.search(r"<result>\s*(.*?)\s*</result>", text, re.DOTALL)
+    if tag_match:
+        text = tag_match.group(1).strip()
+        print("🔍  JSON extraído de etiquetas <result>")
+    else:
+        # 2. Extract from ```json ... ``` fence
+        fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+        if fence_match:
+            text = fence_match.group(1).strip()
+            print("🔍  JSON extraído de bloque markdown")
+        else:
+            # 3. Extract by first { and last }
+            start = text.find("{")
+            end   = text.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                text = text[start:end+1].strip()
+                print("🔍  JSON extraído por posición de llaves")
+
+    # 4. Plain ERROR text
     if text.strip().upper() == "ERROR":
         return {"objects": [{"type": "ERROR", "name": "ERROR", "status": "NO OK",
                               "description": "No se identificó ninguna bebida."}]}
+
     return json.loads(text)
 
 
@@ -995,6 +1146,59 @@ def serve_thumbnail(filename):
     return Response(buf.getvalue(), mimetype="image/jpeg")
 
 
+@app.route("/api/models")
+def list_models():
+    api_key  = request.args.get("key", "").strip()
+    provider = request.args.get("provider", "google").strip()
+    if not api_key:
+        return jsonify({"error": "API Key no proporcionada"}), 400
+    try:
+        if provider == "google":
+            resp = requests.get(
+                f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}",
+                timeout=15)
+            resp.raise_for_status()
+            data   = resp.json()
+            models = [
+                m["name"].replace("models/", "") for m in data.get("models", [])
+                if "generateContent" in m.get("supportedGenerationMethods", [])
+            ]
+
+        elif provider == "groq":
+            resp = requests.get(
+                "https://api.groq.com/openai/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"}, timeout=15)
+            resp.raise_for_status()
+            data   = resp.json()
+            # Keep only vision-capable models (those with vision in context or id)
+            models = [m["id"] for m in data.get("data", [])]
+            # Put vision models first
+            models.sort(key=lambda m: (0 if "vision" in m or "llama-4" in m or "scout" in m or "maverick" in m else 1, m))
+
+        elif provider == "openrouter":
+            resp = requests.get(
+                "https://openrouter.ai/api/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"}, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            # Keep only multimodal/vision models and free ones
+            models = [
+                m["id"] for m in data.get("data", [])
+                if any(mod in m.get("architecture", {}).get("modality", "") for mod in ["image", "vision", "multimodal"])
+            ]
+            models.sort()
+
+        else:
+            return jsonify({"error": f"Proveedor desconocido: {provider}"}), 400
+
+        return jsonify({"models": models})
+
+    except requests.HTTPError as e:
+        return jsonify({"error": f"Error HTTP {e.response.status_code}: {e.response.text}"}), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
     data     = request.get_json()
@@ -1005,12 +1209,13 @@ def analyze():
     max_size_val = max_size_val if max_size_val in (512, 768) else 512
     max_size = (max_size_val, max_size_val)
     gen_config = data.get("gen_config") or {}
+    model    = data.get("model",    "gemma-4-31b-it").strip() or "gemma-4-31b-it"
+    provider = data.get("provider", "google").strip()         or "google"
     # Sanitise / apply defaults
     generation_config = {
         "temperature":     float(gen_config.get("temperature", 0.1)),
         "topP":            float(gen_config.get("topP", 0.95)),
-        "maxOutputTokens": int(gen_config.get("maxOutputTokens", 512)),
-        "candidateCount":  int(gen_config.get("candidateCount", 1)),
+        "maxOutputTokens": int(gen_config.get("maxOutputTokens", 1024)),
     }
     if "topK" in gen_config:
         generation_config["topK"] = int(gen_config["topK"])
@@ -1024,26 +1229,45 @@ def analyze():
     if not image_path.exists():
         return jsonify({"error": f"Archivo no encontrado: {filename}"}), 404
 
+    print(f"\n{'─'*50}")
+    print(f"📸  Analizando  : {filename}")
+    print(f"🤖  Proveedor   : {provider} / {model}")
+    print(f"📐  Resolución  : {max_size_val}px")
+    print(f"⚙️   Gen config  : {json.dumps(generation_config)}")
+
     try:
         jpeg_bytes, media_type = compress_image(str(image_path), max_size)
+        print(f"🗜️   Imagen JPEG : {len(jpeg_bytes):,} bytes")
     except Exception as e:
+        print(f"❌  Error comprimiendo imagen: {e}")
         return jsonify({"error": f"Error procesando imagen: {e}"}), 500
 
     try:
-        api_resp = call_gemma(api_key, jpeg_bytes, media_type, prompt, generation_config)
+        print(f"🌐  Llamando a la API...")
+        api_resp = call_api(provider, api_key, jpeg_bytes, media_type, prompt, generation_config, model)
+        print(f"✅  Respuesta recibida:")
+        print(json.dumps(api_resp, indent=2, ensure_ascii=False))
     except requests.HTTPError as e:
+        print(f"❌  Error HTTP {e.response.status_code}:")
+        print(e.response.text)
         return jsonify({"error": f"Error HTTP {e.response.status_code}: {e.response.text}"}), 502
     except requests.RequestException as e:
+        print(f"❌  Error de red: {e}")
         return jsonify({"error": f"Error de red: {e}"}), 502
 
     try:
         result = parse_response(api_resp)
+        print(f"✅  JSON parseado correctamente")
+        print(f"{'─'*50}\n")
     except Exception as e:
         raw = ""
         try:
             raw = api_resp["candidates"][0]["content"]["parts"][0]["text"]
         except Exception:
             pass
+        print(f"❌  Error parseando respuesta: {e}")
+        print(f"📄  Texto raw del modelo:\n{raw}")
+        print(f"{'─'*50}\n")
         return jsonify({"error": f"No se pudo parsear la respuesta: {e}", "raw_text": raw}), 502
 
     return jsonify({"result": result})
