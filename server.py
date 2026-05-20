@@ -26,12 +26,16 @@ DEFAULT_PROMPT = (
     '      "type": "BOTTLE | CAN | ERROR",\n'
     '      "name": "BRAND NAME | ERROR",\n'
     '      "status": "OK | NO OK",\n'
+    '      "material": "MATERIAL DEL CONTENEDOR (ej: aluminio, vidrio, plastico, carton, etc)",\n'
+    '      "capacity": "CAPACIDAD DEL CONTENEDOR (ej: 330ml, 500ml, 1L, etc) | UNKNOWN",\n'
     '      "description": "DESCRIPCION CORTA CON DATOS CURIOSOS SOBRE LA BEBIDA Y LA TEMPERATURA IDEAL DE CONSUMICION"\n'
     '    }\n  ]\n}\n'
     "Si no encuentras el nombre de la marca (o parte de el) o no encuentras el logo (o parte de el), "
     "y por lo tanto no estas 100% seguro de la marca, responde el 'name' con ERROR. "
     "No es admisible que el nombre de la marca detectada sea erroneo, es preferible responder con un error a la minima duda. "
     "Aunque haya mas de una bebida en la misma imagen y sean parecidas, no puedes asumir la marca de ninguna de las dos si no estas seguro.\n"
+    "Si no encuentras el material del contenedor con certeza, usa tu mejor estimacion basandote en el tipo de envase. "
+    "Si no puedes determinar la capacidad, responde UNKNOWN.\n"
     "Si no hay ninguna bebida, responde ERROR.\n"
     "Envuelve el JSON final entre las etiquetas <result> y </result>. "
     "Ejemplo: <result>{...}</result>\n"
@@ -374,7 +378,7 @@ HTML = r"""<!DOCTYPE html>
         <option value="openrouter">OpenRouter</option>
       </select>
       <select id="modelSelect">
-        <option value="gemma-4-31b-it">gemma-4-31b-it</option>
+        <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
       </select>
       <button class="btn btn-s" onclick="listModels()" title="Cargar modelos disponibles">↺</button>
     </div>
@@ -838,12 +842,20 @@ function card(o) {
   const icon   = o.type==='BOTTLE'?'🍾':o.type==='CAN'?'🥫':'❌';
   const sc     = isErr?'error':isOk?'ok':'nok';
   const sl     = isErr?'ERROR':isOk?'OK':'NO OK';
+  const matIcon = {'aluminio':'🥤','vidrio':'🍶','plastico':'🧴','carton':'🧃'}[
+    (o.material||'').toLowerCase()] || '📦';
+  const metaRow = (!isErr && (o.material || o.capacity)) ? `
+    <div style="display:flex;gap:.5rem;margin:.45rem 0 .3rem;flex-wrap:wrap">
+      ${o.material ? `<span style="background:var(--surface);border:1px solid var(--border);border-radius:4px;font-size:.6rem;padding:.2rem .55rem;color:var(--muted)">${matIcon} ${esc(o.material)}</span>` : ''}
+      ${o.capacity ? `<span style="background:var(--surface);border:1px solid var(--border);border-radius:4px;font-size:.6rem;padding:.2rem .55rem;color:var(--muted)">⚖️ ${esc(o.capacity)}</span>` : ''}
+    </div>` : '';
   return `<div class="rcard ${isErr?'err':isOk?'ok':''}">
     <div class="rtop">
       <div class="rtype"><span class="ti">${icon}</span>${esc(o.type)}</div>
       <span class="spill ${sc}">${sl}</span>
     </div>
     <div class="rname ${isErr?'en':''}">${esc(o.name||'N/A')}</div>
+    ${metaRow}
     <div class="rdesc">${esc(o.description||'')}</div>
     <button class="jtog" onclick="toggleJ(this)">Ver JSON raw</button>
     <pre class="jblk">${esc(JSON.stringify(o,null,2))}</pre>
@@ -912,7 +924,7 @@ function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 // Default models per provider
 const PROVIDER_DEFAULTS = {
-  google:      { model: 'gemma-4-31b-it',                      placeholder: 'API Key de Google AI Studio' },
+  google:      { model: 'gemini-3.1-flash-lite',                      placeholder: 'API Key de Google AI Studio' },
   groq:        { model: 'meta-llama/llama-4-scout-17b-16e-instruct', placeholder: 'API Key de Groq (gsk_...)' },
   openrouter:  { model: 'qwen/qwen2.5-vl-72b-instruct:free',   placeholder: 'API Key de OpenRouter (sk-or-...)' },
 };
@@ -990,7 +1002,7 @@ def compress_image(image_path: str, max_size: tuple = MAX_SIZE) -> tuple[bytes, 
 
 def call_api(provider: str, api_key: str, jpeg_bytes: bytes, media_type: str,
              prompt: str, generation_config: dict | None = None,
-             model: str = "gemma-4-31b-it") -> dict:
+             model: str = "gemini-3.1-flash-lite") -> dict:
     """Unified API caller. Returns a normalised response dict with a 'candidates' key."""
     if generation_config is None:
         generation_config = {"temperature": 0.1, "topP": 0.95, "maxOutputTokens": 1024}
@@ -1209,7 +1221,7 @@ def analyze():
     max_size_val = max_size_val if max_size_val in (512, 768) else 512
     max_size = (max_size_val, max_size_val)
     gen_config = data.get("gen_config") or {}
-    model    = data.get("model",    "gemma-4-31b-it").strip() or "gemma-4-31b-it"
+    model    = data.get("model",    "gemini-3.1-flash-lite").strip() or "gemini-3.1-flash-lite"
     provider = data.get("provider", "google").strip()         or "google"
     # Sanitise / apply defaults
     generation_config = {
